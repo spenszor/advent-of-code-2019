@@ -1,4 +1,5 @@
 from math import gcd
+from copy import deepcopy
 
 def compare_dim(d1, d2):
     if d1 > d2:
@@ -8,22 +9,11 @@ def compare_dim(d1, d2):
     else:
         return 0
 
-def compute_lcm(x, y):
-   lcm = (x*y)//gcd(x,y)
+def lcm(x, y):
+   lcm = (x * y) // gcd(x,y)
    return lcm
 
-def part_one():
-    velocities = [
-        {'x': 0, 'y': 0, 'z': 0},
-        {'x': 0, 'y': 0, 'z': 0}, 
-        {'x': 0, 'y': 0, 'z': 0},
-        {'x': 0, 'y': 0, 'z': 0}
-    ]
-    moons = [{'x': 3, 'y': 3, 'z': 0},
-             {'x': 4, 'y': -16, 'z': 2}, 
-             {'x': -10, 'y': -6, 'z': 5},
-             {'x': -3, 'y': 0, 'z': -13}]
-
+def part_one(moons, velocities):
     dims = ['x', 'y', 'z']
 
     for step in range(1000):
@@ -47,59 +37,53 @@ def part_one():
         total += (t_potential * t_kinetic)
     print(total)
 
-with open('./inputs/day12') as data:
-    # TODO add parsing?
-    # moons = [{'x': -1, 'y': 0, 'z': 2},
-    #          {'x': 2, 'y': 10, 'z': -7}, 
-    #          {'x': 4, 'y': -8, 'z': 8},
-    #          {'x': 3, 'y': 5, 'z': -1}]
-
-    velocities = [
-        {'x': 0, 'y': 0, 'z': 0},
-        {'x': 0, 'y': 0, 'z': 0}, 
-        {'x': 0, 'y': 0, 'z': 0},
-        {'x': 0, 'y': 0, 'z': 0}
-    ]
-    moons = [{'x': 3, 'y': 3, 'z': 0},
-             {'x': 4, 'y': -16, 'z': 2}, 
-             {'x': -10, 'y': -6, 'z': 5},
-             {'x': -3, 'y': 0, 'z': -13}]
-
-    initial = [
-        {'x': 0, 'y': 0, 'z': 0},
-        {'x': 0, 'y': 0, 'z': 0}, 
-        {'x': 0, 'y': 0, 'z': 0},
-        {'x': 0, 'y': 0, 'z': 0}
-    ]
-
-    dims = ['x', 'y', 'z']
-
-    partial = []
-
-    # def comp(velo1, velo2, dim):
-
-
-    for axe in dims:
+def part_two(moons, velocities):
+    axes = ['x', 'y', 'z']
+    periods = []
+    for d in range(3):
         steps = 0
+        seen = set()
         while True:
             for i in range(4):
                 cur_moon = moons[i]
                 for o in range(i + 1, i + 4):
                     c = o % 4
-                    for dim in dims:
+                    for dim in axes:
                         velocities[i][dim] += compare_dim(cur_moon[dim], moons[c][dim])
             for i in range(4):
-                for dim in dims:
+                for dim in axes:
                     moons[i][dim] += velocities[i][dim]
             # print(f'Step {step}, positions: {moons}, velos: {velocities}')
-            steps +=1
+            current_state = []
+            for j in range(4):
+                current_state.append(moons[j][axes[d]])
+                current_state.append(velocities[j][axes[d]])
+            current_state = str(current_state)
 
-            same = True
-            for r in range(4):
-                if velocities[r][axe] != 0:
-                    same = False
-            if same:
-                partial.append(steps)
+            if current_state in seen:
+                print(f'Found period for {axes[d]}: {steps}')
+                periods.append(steps)
                 break
-    print(partial)
-    print(compute_lcm(partial[0], compute_lcm(partial[1], partial[2])))
+
+            steps +=1
+            seen.add(current_state)
+            
+    print(periods)
+    print(lcm(periods[0], lcm(periods[1], periods[2])))
+
+with open('./inputs/day12') as data:
+    moons = []
+    velocities = []
+    for line in data:
+        line = line.strip()
+        line = line[1:-1]
+        line = line.split(", ")
+        moon = {}
+        for e in line:
+            k, v = e.split("=")
+            moon[k] = int(v)
+        moons.append(moon)
+        velocities.append({'x': 0, 'y': 0, 'z': 0})
+    part_one(deepcopy(moons), deepcopy(velocities))
+    part_two(deepcopy(moons), deepcopy(velocities))
+    
