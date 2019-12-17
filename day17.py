@@ -1,14 +1,16 @@
+from collections import deque
 INSTRUCTION_POINTER_MAPPING = [-1, +4, +4, +2, +2, 0, 0, +4, +4, +2]
 
 class Computer:
-    def __init__(self, memory):
+    def __init__(self, memory, commands):
         self.memory = memory.copy()
         self.current_pos = 0
         self.halted = False
         self.last_output = 0
         self.relative_base = 0
+        self.commands = deque(commands)
 
-    def calculate(self, param = None):
+    def calculate(self):
         while True:
             raw_instr = self.memory[self.current_pos]
             proc = str(raw_instr).zfill(5)
@@ -27,8 +29,8 @@ class Computer:
                 res = v1 * v2
                 self.write_by_mode(modes[0], self.current_pos + 3, res)
             elif instr == 3:
-                if param:
-                    self.write_by_mode(modes[-1], self.current_pos + 1, param)
+                if self.commands:
+                    self.write_by_mode(modes[-1], self.current_pos + 1, self.commands.popleft())
                 else:
                     read_v = input('Give param: ')
                     self.write_by_mode(modes[-1], self.current_pos + 1, int(read_v))
@@ -125,6 +127,8 @@ def print_grid(grid):
 def is_intersection(grid, x, y):
     return grid[(x+1, y)] == '#' and grid[(x, y + 1)] == '#' and grid[(x - 1, y)] == '#' and grid[(x, y - 1)] == '#'
 
+
+
 with open('./inputs/day17') as data:
     parsed = list(map(lambda x: int(x), data.readline().split(',')))
     # part one
@@ -148,67 +152,64 @@ with open('./inputs/day17') as data:
     # print(f'First solution: {alignment_params}')
 
     #part two
-    parsed[0] = 2
-    c = Computer(parsed)
-    movement = 'A,B,A,B,C,A,B,C,A,C'
-    NL = 10
-    for ch in movement:
-        c.calculate(ord(ch))
-    c.calculate(NL)
-    A = 'R,6,L,6,L,10'
     R = ord('R')
     L = ord('L')
-    COMMA = ord(',')
-    # A
-    c.calculate(R)
-    c.calculate(COMMA)
-    c.calculate(6)
-    c.calculate(COMMA)
-    c.calculate(L)
-    c.calculate(COMMA)
-    c.calculate(6)
-    c.calculate(COMMA)
-    c.calculate(L)
-    c.calculate(COMMA)
-    c.calculate(10)
-    c.calculate(NL)
-    # B
-    c.calculate(L)
-    c.calculate(COMMA)
-    c.calculate(8)
-    c.calculate(COMMA)
-    c.calculate(L)
-    c.calculate(COMMA)
-    c.calculate(6)
-    c.calculate(COMMA)
-    c.calculate(L)
-    c.calculate(COMMA)
-    c.calculate(10)
-    c.calculate(COMMA)
-    c.calculate(L)
-    c.calculate(COMMA)
-    c.calculate(6)
-    c.calculate(NL)
-    # C
-    c.calculate(R)
-    c.calculate(COMMA)
-    c.calculate(6)
-    c.calculate(COMMA)
-    c.calculate(L)
-    c.calculate(COMMA)
-    c.calculate(8)
-    c.calculate(COMMA)
-    c.calculate(L)
-    c.calculate(COMMA)
-    c.calculate(10)
-    c.calculate(COMMA)
-    c.calculate(R)
-    c.calculate(COMMA)
-    c.calculate(6)
-    c.calculate(NL)
-    # Video feed
-    c.calculate(ord('y'))
-    res = c.calculate(NL)
-    print(res)
-    dust = c.last_output
-    print(dust)
+    CM = ord(',')
+    NL = 10
+    A = ord('A')
+    B = ord('B')
+    C = ord('C')
+    print(R, L, CM, NL, A, B, C)
+    parsed[0] = 2
+    everyting = [A, CM, B, CM, A, CM, B, CM, C, CM, A, CM, B, CM, C, CM, A, CM, C, NL,
+        R, CM, ord('6'), CM, L, CM, ord('6'), CM, L, CM, ord('1'), ord('0'), NL,
+        L, CM, ord('8'), CM, L, CM, ord('6'), CM, L, CM, ord('1'), ord('0'), CM, L, CM, ord('6'), NL,
+        R, CM, ord('6'), CM, L, CM, ord('8'), CM, L, CM, ord('1'), ord('0'), CM, R, CM, ord('6'), NL,
+        ord('n'), NL
+    ]
+    c = Computer(parsed, everyting)
+    while not c.halted:
+        c.calculate()
+        # print(chr(c.calculate()), end='')
+    c.memory.sort()
+    print(c.memory[-1])
+    print(c.last_output)
+    #MOVEMENT A,B,A,B,C,A,B,C,A,C
+    mov = [A, CM, B, CM, A, CM, B, CM, C, CM, A, CM, B, CM, C, CM, A, CM, C, NL]
+    #A: R, 6, L, 6, L, 10,
+    instr_A = [R, CM, 6, CM, L, CM, 6, CM, L, CM, 10, NL]
+    #B: L, 8, L, 6, L, 10, L, 6
+    instr_B = [L, CM, 8, CM, L, CM, 6, CM, L, CM, 10, CM, L, CM, 6, NL]
+    #C: R, 6, L, 8, L, 10, R, 6
+    instr_C = [R, CM, 6, CM, L, CM, 8, CM, L, CM, 10, CM, R, CM, 6, NL]
+    dust = 0
+    # for i in range((1646)):
+    #     x = chr(c.calculate())
+    #     print(x, end='')
+        
+    # for command in mov:
+    #     print(f'passing {command} ')
+    #     print(chr(c.calculate(command)), end="")
+    # # for i in range(10):
+    # #     x = chr(c.calculate())
+    # #     print(x, end='')
+
+    # for command in instr_A:
+    #     print(chr(c.calculate(command)), end="")
+    # for command in instr_B:
+    #     print(chr(c.calculate(command)), end="")
+    # for command in instr_C:
+    #     print(chr(c.calculate(command)), end="")
+    # # Video feed
+    # c.calculate(ord('n'))
+    # res = c.calculate(NL)
+   
+    # # while not c.halted:
+    # #     c.calculate()
+    # print(res)
+    # # while not c.halted:
+    # #     print(chr(c.calculate()))
+    # c.memory.sort()
+    # print(c.memory[-1])
+    # dust += c.last_output
+    # print(dust)
