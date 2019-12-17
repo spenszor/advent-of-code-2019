@@ -2,15 +2,15 @@ from collections import deque
 INSTRUCTION_POINTER_MAPPING = [-1, +4, +4, +2, +2, 0, 0, +4, +4, +2]
 
 class Computer:
-    def __init__(self, memory, commands):
+    def __init__(self, memory, parameters = []):
         self.memory = memory.copy()
         self.current_pos = 0
         self.halted = False
         self.last_output = 0
         self.relative_base = 0
-        self.commands = deque(commands)
+        self.parameters = deque(parameters)
 
-    def calculate(self):
+    def calculate(self, immediate_param = None):
         while True:
             raw_instr = self.memory[self.current_pos]
             proc = str(raw_instr).zfill(5)
@@ -29,8 +29,10 @@ class Computer:
                 res = v1 * v2
                 self.write_by_mode(modes[0], self.current_pos + 3, res)
             elif instr == 3:
-                if self.commands:
-                    self.write_by_mode(modes[-1], self.current_pos + 1, self.commands.popleft())
+                if immediate_param:
+                    self.write_by_mode(modes[-1], self.current_pos + 1, immediate_param)
+                elif self.parameters:
+                    self.write_by_mode(modes[-1], self.current_pos + 1, self.parameters.popleft())
                 else:
                     read_v = input('Give param: ')
                     self.write_by_mode(modes[-1], self.current_pos + 1, int(read_v))
@@ -71,7 +73,6 @@ class Computer:
             elif instr == 9:
                 new_base = self.read_by_mode(modes[-1], self.current_pos +1)
                 self.relative_base += new_base
-                # print(f'Relative base changed to {self.relative_base}')
             elif instr == 99:
                 self.halted = True
                 break
@@ -127,31 +128,30 @@ def print_grid(grid):
 def is_intersection(grid, x, y):
     return grid[(x+1, y)] == '#' and grid[(x, y + 1)] == '#' and grid[(x - 1, y)] == '#' and grid[(x, y - 1)] == '#'
 
-
-
 with open('./inputs/day17') as data:
     parsed = list(map(lambda x: int(x), data.readline().split(',')))
     # part one
-    # c = Computer(parsed)
-    # current_pos = (0, 0)
-    # grid = dict()
-    # while not c.halted:
-    #     ch = c.calculate()
-    #     if ch == 10:
-    #         current_pos = (0, current_pos[1] + 1)
-    #     elif ch:
-    #         grid[current_pos] = chr(ch)
-    #         current_pos = (current_pos[0] + 1, current_pos[1])
+    c = Computer(parsed)
+    current_pos = (0, 0)
+    grid = dict()
+    while not c.halted:
+        ch = c.calculate()
+        if ch == 10:
+            current_pos = (0, current_pos[1] + 1)
+        elif ch:
+            grid[current_pos] = chr(ch)
+            current_pos = (current_pos[0] + 1, current_pos[1])
     
     # print_grid(grid)
-    # alignment_params = 0
-    # for y in range(1, 38):
-    #     for x in range(1, 40):
-    #         if grid[(x, y)] == '#' and is_intersection(grid, x, y):
-    #             alignment_params += x * y
-    # print(f'First solution: {alignment_params}')
+    alignment_params = 0
+    for y in range(1, 38):
+        for x in range(1, 40):
+            if grid[(x, y)] == '#' and is_intersection(grid, x, y):
+                alignment_params += x * y
+    print(f'First solution: {alignment_params}')
 
     #part two
+    # ascii codes for characters
     R = ord('R')
     L = ord('L')
     CM = ord(',')
@@ -159,57 +159,19 @@ with open('./inputs/day17') as data:
     A = ord('A')
     B = ord('B')
     C = ord('C')
-    print(R, L, CM, NL, A, B, C)
-    parsed[0] = 2
-    everyting = [A, CM, B, CM, A, CM, B, CM, C, CM, A, CM, B, CM, C, CM, A, CM, C, NL,
-        R, CM, ord('6'), CM, L, CM, ord('6'), CM, L, CM, ord('1'), ord('0'), NL,
-        L, CM, ord('8'), CM, L, CM, ord('6'), CM, L, CM, ord('1'), ord('0'), CM, L, CM, ord('6'), NL,
-        R, CM, ord('6'), CM, L, CM, ord('8'), CM, L, CM, ord('1'), ord('0'), CM, R, CM, ord('6'), NL,
+    parsed[0] = 2 # modifies the way program works (see instructions)
+    # The path deduced manually (modern text editors help highlighting patterns if you write the path in a way suggested in instructions)
+    encoded_path = [
+        A, CM, B, CM, A, CM, B, CM, C, CM, A, CM, B, CM, C, CM, A, CM, C, NL, # path
+        R, CM, ord('6'), CM, L, CM, ord('6'), CM, L, CM, ord('1'), ord('0'), NL, # instruction A
+        L, CM, ord('8'), CM, L, CM, ord('6'), CM, L, CM, ord('1'), ord('0'), CM, L, CM, ord('6'), NL, # instruction B
+        R, CM, ord('6'), CM, L, CM, ord('8'), CM, L, CM, ord('1'), ord('0'), CM, R, CM, ord('6'), NL, # instruction C
         ord('n'), NL
     ]
-    c = Computer(parsed, everyting)
+    c = Computer(parsed, encoded_path)
     while not c.halted:
-        c.calculate()
-        # print(chr(c.calculate()), end='')
-    c.memory.sort()
-    print(c.memory[-1])
-    print(c.last_output)
-    #MOVEMENT A,B,A,B,C,A,B,C,A,C
-    mov = [A, CM, B, CM, A, CM, B, CM, C, CM, A, CM, B, CM, C, CM, A, CM, C, NL]
-    #A: R, 6, L, 6, L, 10,
-    instr_A = [R, CM, 6, CM, L, CM, 6, CM, L, CM, 10, NL]
-    #B: L, 8, L, 6, L, 10, L, 6
-    instr_B = [L, CM, 8, CM, L, CM, 6, CM, L, CM, 10, CM, L, CM, 6, NL]
-    #C: R, 6, L, 8, L, 10, R, 6
-    instr_C = [R, CM, 6, CM, L, CM, 8, CM, L, CM, 10, CM, R, CM, 6, NL]
-    dust = 0
-    # for i in range((1646)):
-    #     x = chr(c.calculate())
-    #     print(x, end='')
-        
-    # for command in mov:
-    #     print(f'passing {command} ')
-    #     print(chr(c.calculate(command)), end="")
-    # # for i in range(10):
-    # #     x = chr(c.calculate())
-    # #     print(x, end='')
-
-    # for command in instr_A:
-    #     print(chr(c.calculate(command)), end="")
-    # for command in instr_B:
-    #     print(chr(c.calculate(command)), end="")
-    # for command in instr_C:
-    #     print(chr(c.calculate(command)), end="")
-    # # Video feed
-    # c.calculate(ord('n'))
-    # res = c.calculate(NL)
-   
-    # # while not c.halted:
-    # #     c.calculate()
-    # print(res)
-    # # while not c.halted:
-    # #     print(chr(c.calculate()))
-    # c.memory.sort()
-    # print(c.memory[-1])
-    # dust += c.last_output
-    # print(dust)
+        val = c.calculate()
+        if val and val < 1000:
+            print(chr(val), end='')
+        elif val:
+            print(f'Second solution: {val}')
