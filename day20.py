@@ -30,7 +30,6 @@ def bfs_shortest_path(graph, start, goal):
                     return new_path
             explored.append(node)
 
-
 def move(pos, vec):
     return (pos[0] + vec[0], pos[1] + vec[1])
 
@@ -43,7 +42,7 @@ def neighbours(x, y):
         yield (x + d[0], y + d[1])
 
 
-with open('./inputs/temp') as data:
+with open('./inputs/day20') as data:
     raw_grid = dict()
     for y, line in enumerate(data):
         for x, char in enumerate(line.rstrip()):
@@ -82,15 +81,17 @@ with open('./inputs/temp') as data:
         for d in directions:
             new_pos = move(current_pos, d)
             if new_pos not in available_grid and raw_grid[new_pos] == '.':
-                if new_pos in position_to_portal:
-                    telported_to = list(filter(lambda x: x != new_pos, portals[position_to_portal[new_pos]]))
-                    if telported_to:
-                        new_pos = telported_to[0]
                 adjacency[current_pos].add(new_pos)
-                adjacency[new_pos].add(current_pos)
+                # adjacency[new_pos].add(current_pos)
                 visited_fields.append(current_pos)
                 current_pos = new_pos
                 available_grid[new_pos] = '.'
+                if current_pos in position_to_portal:
+                    temp =  portals[position_to_portal[new_pos]]
+                    telported_to = list(filter(lambda x: x != new_pos, temp))
+                    if telported_to and len(temp) > 1:
+                        adjacency[current_pos].add(telported_to[0])
+                        current_pos = telported_to[0]
                 break
         else:
             if visited_fields:
@@ -99,4 +100,7 @@ with open('./inputs/temp') as data:
                 print_grid(available_grid)
                 break
 
-    print(adjacency[(32,21)])
+    path = bfs_shortest_path(adjacency, portals['AA'][0], portals['ZZ'][0])
+    print(list(map(lambda x: position_to_portal[x] if x in position_to_portal else x ,path)))
+    # print(path)
+    print(len(path))
