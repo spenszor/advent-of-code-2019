@@ -42,5 +42,5 @@ with open('./inputs/day22') as data:
             deck.reverse()
 
     print(deck.index(2019))
-# For part 2, just read the thorough explanation: https://www.reddit.com/r/adventofcode/comments/ee0rqi/2019_day_22_solutions/fbnkaju/
-# There is no way I would come up with solution for this part
+# For part 2... There is no way I would come up with solution for this. 
+# Just read the thorough explanation: https://www.reddit.com/r/adventofcode/comments/ee0rqi/2019_day_22_solutions/fbnkaju/
