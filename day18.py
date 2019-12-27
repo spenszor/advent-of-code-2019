@@ -1,5 +1,7 @@
 from collections import deque, defaultdict
 from pprint import pprint
+from itertools import combinations
+import sys
 
 def print_grid(grid):
     max_x = max(x for (x, y) in grid.keys()) + 1
@@ -11,6 +13,19 @@ def print_grid(grid):
         for x in range(min_x, max_x):
             line += grid.get((x, y), ' ')
         print(line)
+
+def neighs(p):
+    return [(p[0]+1, p[1]), (p[0], p[1]-1), (p[0]-1, p[1]), (p[0], p[1]+1)]
+
+def build_graph(floor):
+    graph = {}
+    for n in floor:
+        neigh = set()
+        for x in neighs(n):
+            if x in floor and floor[x] != '#':
+                neigh.add(x)
+        graph[n] = neigh
+    return graph
 
 def bfs_shortest_path(graph, start, goal):
     explored = []
@@ -28,45 +43,36 @@ def bfs_shortest_path(graph, start, goal):
                     return new_path
             explored.append(node)
 
-
-def move(pos, vec):
-    return (pos[0] + vec[0], pos[1] + vec[1])
-
 with open('./inputs/day18') as data:
+    test = '''
+        ########################
+        #@..............ac.GI.b#
+        ###d#e#f################
+        ###A#B#C################
+        ###g#h#i################
+        ########################
+    '''.strip().splitlines()
+    # data = test
     raw_grid = dict()
     important_points = dict()
-    y = 0
-    for row in data:
+    door_locs = dict()
+    keys = dict()
+    start = None
+    for y, row in enumerate(data):
         stripped =  row.strip()
         for x in range(len(stripped)):
             raw_grid[(x, y)] = stripped[x]
             if stripped[x] != '.' and stripped[x] != '#':
                 important_points[stripped[x]] = (x, y)
-        y += 1
-    print_grid(raw_grid)
-    # traverse available space to build adjacency list
-    directions = [(0, 1), (0, -1), (-1, 0), (1, 0)]
-    visited_fields = deque()
-    current_pos = important_points['@']
-    available_grid = dict()
-    adjacency = defaultdict(set)
-    available_grid[current_pos] = '.'
-    while True:
-        for d in directions:
-            new_pos = move(current_pos, d)
-            if new_pos not in available_grid and (raw_grid[new_pos] == '.' or raw_grid[new_pos].islower()):
-                adjacency[current_pos].add(new_pos)
-                adjacency[new_pos].add(current_pos)
-                visited_fields.append(current_pos)
-                current_pos = new_pos
-                available_grid[new_pos] = '.'
-                break
-        else:
-            if visited_fields:
-                current_pos = visited_fields.pop()
-            else:
-                print_grid(available_grid)
-                break
+                if stripped[x].islower():
+                    keys[stripped[x]] = (x, y)
+                elif stripped[x].isupper():
+                    door_locs[(x, y)] = stripped[x]
+                elif stripped[x] == '@':
+                    start = (x, y)
+
+    adjacency = build_graph(raw_grid)
+    print('Grid traversed')
 
     # index distances to and between available keys and doors on the way (also include starting point):
     #{
@@ -77,4 +83,44 @@ with open('./inputs/day18') as data:
     #   'a': { 'b': (6, {'A'}) },
     #   'b': { 'a': (6, {'A'}) }
     #}
-    # Finish once all keys collected
+
+    keys['@'] = start
+    distances = defaultdict(dict)
+    for combination in combinations(keys.keys(), 2):
+        start_symbol, end_symbol = combination
+        start = keys[start_symbol]
+        end = keys[end_symbol]
+        path = bfs_shortest_path(adjacency, start, end) # possibly -1 on path len as it contains start
+        doors_on_path = set(door_locs[step].lower() for step in path if step in door_locs)
+        if end_symbol != '@':
+            distances[start_symbol][end_symbol] = (len(path) - 1, doors_on_path)
+        if start_symbol != '@':
+            distances[end_symbol][start_symbol] = (len(path) - 1, doors_on_path)
+    # pprint(distances)
+    keys.pop('@')
+    print('Distances build, searching for answer')
+    
+    cache = {}
+    def traverse(current_key, keys_to_collect):
+        if len(keys_to_collect) == 0:
+            return 0
+
+        cache_key = current_key + ''.join(keys_to_collect)
+        if cache_key in cache:
+            return cache[cache_key]
+
+        shortest = 10e10
+        for k in keys_to_collect:
+            length, doors = distances[current_key][k]
+            if length >= shortest: 
+                continue # don't bother - too long path
+            if not doors.isdisjoint(keys_to_collect): 
+                continue # don't have all needed keys
+            tail = traverse(k, keys_to_collect - {k})
+            if shortest > length + tail: 
+                shortest = length + tail
+        cache[cache_key] = shortest
+        return shortest
+    
+    solution_one = traverse('@', set(keys.keys()))
+    print(f'Solution one: {solution_one}')
